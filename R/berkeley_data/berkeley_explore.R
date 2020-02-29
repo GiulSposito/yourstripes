@@ -51,7 +51,7 @@ br_temp <- brazil_sites %>%
          elevation, country, year, temperature)
 
 br_temp %>% 
-  filter(station_name=="MONTES CLAROS") %>% 
+  filter(station_name=="GOIANIA") %>% 
   group_by(country, year) %>% 
   summarise( temp_avg = mean(temperature, na.rm = T)) %>% 
   ungroup() %>% 
@@ -98,6 +98,28 @@ br_temp %>%
   theme_minimal()
 
 
+br_temp %>% 
+  filter(station_name %in% c("RIO DE JANEIR", "SAO PAULO", "BRASILEIRA (AER", 
+                             "SALVADOR","MANAUS")) %>% 
+  group_by(country, station_name, year) %>% 
+  summarise( temp_avg = mean(temperature, na.rm = T)) %>% 
+  ungroup() %>% 
+  filter(year>=max(year)-100) %>% 
+  mutate(temp_avg=temp_avg-mean(temp_avg)) %>% 
+  # ggplot(aes(x=year, y=temp_avg)) +
+  # geom_point() + 
+  # theme_minimal()
+  ggplot(aes(x=year, fill=temp_avg, color=temp_avg)) +
+  geom_bar(aes(y=1), stat="identity",
+           position = position_dodge2(width = 0, padding=0)) +
+  scale_fill_gradient2(low="darkblue", mid="lightblue", high="red") +
+  scale_color_gradient2(low="darkblue", mid="lightblue", high="red") +
+  facet_wrap(.~station_name, ncol = 1)+
+  theme_void() +
+  theme(
+    legend.position = "none",
+    panel.border = element_blank()
+  )
 
 
 
