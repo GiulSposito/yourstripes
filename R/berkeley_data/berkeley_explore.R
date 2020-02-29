@@ -51,6 +51,7 @@ br_temp <- brazil_sites %>%
          elevation, country, year, temperature)
 
 br_temp %>% 
+  filter(station_name=="MONTES CLAROS") %>% 
   group_by(country, year) %>% 
   summarise( temp_avg = mean(temperature, na.rm = T)) %>% 
   ungroup() %>% 
