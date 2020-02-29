@@ -1,0 +1,163 @@
+---
+title: 'Your Strips in #RStats'
+output:
+  html_document:
+    df_print: paged
+---
+
+Lorem ipsum dolor sit amet, consectetur adipiscing elit. Ut vitae mauris sed turpis ornare molestie ut id eros. Nam fringilla blandit urna, quis euismod orci feugiat ac. Nullam ut mollis ante. Morbi quis orci ultricies, efficitur magna in, sodales felis. In hac habitasse platea dictumst. Curabitur iaculis consectetur nunc ut dapibus. In nec tempor purus, vitae commodo urna. Nullam ligula orci, iaculis ut turpis et, bibendum tempus turpis. Praesent eu accumsan nisi, id euismod ex. Vivamus blandit leo vel maximus auctor. Proin turpis urna, porttitor ac scelerisque a, ultricies laoreet lacus. 
+
+<!--more-->
+
+## Your Strip
+
+Lorem ipsum dolor sit amet, consectetur adipiscing elit. Ut vitae mauris sed turpis ornare molestie ut id eros. Nam fringilla blandit urna, quis euismod orci feugiat ac. Nullam ut mollis ante. Morbi quis orci ultricies, efficitur magna in, sodales felis. In hac habitasse platea dictumst. Curabitur iaculis consectetur nunc ut dapibus. In nec tempor purus, vitae commodo urna. Nullam ligula orci, iaculis ut turpis et, bibendum tempus turpis. Praesent eu accumsan nisi, id euismod ex. Vivamus blandit leo vel maximus auctor. Proin turpis urna, porttitor ac scelerisque a, ultricies laoreet lacus. 
+
+![Show Your Stripes](https://showyourstripes.info/stripes/SOUTH_AMERICA-Brazil--1901-2018-BK.png)
+
+## Dataset
+
+Lorem ipsum dolor sit amet, consectetur adipiscing elit. Ut vitae mauris sed turpis ornare molestie ut id eros. Nam fringilla blandit urna, quis euismod orci feugiat ac. Nullam ut mollis ante. Morbi quis orci ultricies, efficitur magna in, sodales felis. In hac habitasse platea dictumst. Curabitur iaculis consectetur nunc ut dapibus. In nec tempor purus, vitae commodo urna. Nullam ligula orci, iaculis ut turpis et, bibendum tempus turpis. Praesent eu accumsan nisi, id euismod ex. Vivamus blandit leo vel maximus auctor. Proin turpis urna, porttitor ac scelerisque a, ultricies laoreet lacus. 
+
+```{r loadData, eval=FALSE}
+library(tidyverse)
+
+temp_data <- readr::read_delim(file="./data/data.txt", skip = 111, delim = "\t",
+                  col_names = F, col_types = "iicnnii", na = "-99") %>% 
+  set_names(c("station_id","series_number","date","temperature",
+              "uncertainty","observations","time")) %>% 
+  separate(date, into = c("year","month"), sep="\\.", convert = T, remove=F) %>% 
+  mutate(month=round(month*12/1000+.5))
+
+temp_data %>% 
+  sample_n(10) %>% 
+  kable() %>% 
+  kable_styling(font_size = 8)
+
+```
+
+```{r realLoadData, echo=FALSE, warning=FALSE, message=FALSE}
+library(tidyverse)
+temp_data <- readRDS("./data.rds")
+
+library(knitr)
+library(kableExtra)
+
+temp_data %>% 
+  sample_n(10) %>% 
+  kable() %>% 
+  kable_styling(font_size = 8)
+
+```
+
+
+bla bla bla data e site
+
+```{r loadSites, eval=FALSE}
+site_data <- readr::read_delim(file="./data/site_detail.txt", skip=149, delim="\t", 
+                  col_names = F, 
+                  na=c("-99","-9999","[Missing]                               ",""), 
+                  col_types = "icnnnnnncccciiiiiiic") %>% 
+  set_names(c("station_id","station_name","latitude","longitude","elevation","lat_uncert",
+              "lon_uncert","elev_uncert","country","state","county","timezone","wmo_id",
+              "coop_id","wban_id","icao_id","relocations","suggested_relocations","sources","hash")) %>% 
+  mutate_if(is.character, str_trim) %>% 
+  mutate_at(vars(country, state, county), as.factor)
+```
+
+```{r realLoadSites, echo=FALSE}
+site_data <- readRDS("./site_detail.rds")
+
+site_data %>% 
+  sample_n(10) %>% 
+  kable() %>% 
+  kable_styling(font_size = 8)
+```
+
+## Brazil Strip
+
+```{r brazilStripe}
+
+brazil_sites <- site_data %>% 
+  filter(country=="Brazil")
+
+brazil_temp <- brazil_sites %>% 
+  inner_join(temp_data, by = "station_id") %>% 
+  select(station_id, station_name, latitude, longitude, 
+         elevation, country, year, temperature)
+
+brazil_temp %>%
+  group_by(year) %>% 
+  summarise( temp_avg = mean(temperature, na.rm = T)) %>% 
+  ungroup() %>% 
+  filter(year>=max(year)-100) %>% 
+  mutate(temp_avg=temp_avg-mean(temp_avg)) %>% 
+  ggplot(aes(x=year, fill=temp_avg, color=temp_avg)) +
+    geom_bar(aes(y=1), stat="identity",
+             position = position_dodge2(width = 0, padding=0)) +
+    scale_fill_gradient2(low="darkblue", mid="lightblue", high="red") +
+    scale_color_gradient2(low="darkblue", mid="lightblue", high="red") +
+    theme_void() +
+    theme(
+      legend.position = "none"
+    )
+
+
+
+```
+
+
+## Stations in Brazil
+
+```{r brazilStations, warning=FALSE, message=FALSE}
+library(yaml)
+library(ggmap)
+library(ggrepel)
+
+google <- yaml::read_yaml("./google_keys.yaml")
+ggmap::register_google(google$key)
+
+bbox <- make_bbox(lon = brazil_sites$longitude, lat = brazil_sites$latitude, f = .1)
+gmap <- get_map(location=bbox, source="google", maptype="terrain")
+
+ggmap(gmap) +
+  geom_point(data=brazil_sites, aes(x=longitude, y=latitude)) +
+  geom_text_repel(data=brazil_sites, aes(x=longitude, y=latitude, label=station_name), 
+                  size=2) +
+  theme_void()
+```
+
+## Major Cities Strip
+
+```{r}
+
+cities <- c("PORTO ALEGRE", "CURITIBA", "SAO PAULO" ,"RIO DE JANEIR",
+            "BELO HORIZONT", "BRASILIA (AER", "CUIABA","SALVADOR","FORTALEZA","MANAUS")
+
+cities %>% 
+  map(function(.city, .data){
+    .data %>% 
+      filter(station_name == .city) %>% 
+      group_by(country, station_name, year) %>% 
+      summarise( temp_avg = mean(temperature, na.rm = T)) %>% 
+      ungroup() %>% 
+      filter(year>=max(year)-100) %>% 
+      mutate(temp_avg=temp_avg-mean(temp_avg)) %>% 
+      ggplot(aes(x=year, fill=temp_avg, color=temp_avg)) +
+      geom_bar(aes(y=1), stat="identity",
+               position = position_dodge2(width = 0, padding=0)) +
+      scale_fill_gradient2(low="darkblue", mid="lightblue", high="red") +
+      scale_color_gradient2(low="darkblue", mid="lightblue", high="red") +
+      facet_wrap(.~station_name, ncol = 1)+
+      ggtitle(.city) +
+      theme_void() +
+      theme(
+        legend.position = "none"
+      )
+      
+  }, .data=brazil_temp)
+
+
+
+```
+

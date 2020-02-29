@@ -9,6 +9,8 @@ temp_data <- readr::read_delim(file="./data/data.txt", skip = 111, delim = "\t",
   separate(date, into = c("year","month"), sep="\\.", convert = T, remove=F) %>% 
   mutate(month=round(month*12/1000+.5))
 
+saveRDS(temp_data, "./data/data.rds")
+
 
 # Station ID, Station Name, Latitude, Longitude, Elevation (m), Lat. Uncertainty, 
 # Long. Uncertainty, Elev. Uncertainty (m), Country, State / Province Code, County, 
@@ -25,8 +27,12 @@ site_data <- readr::read_delim(file="./data/site_detail.txt", skip=149, delim="\
   mutate_if(is.character, str_trim) %>% 
   mutate_at(vars(country, state, county), as.factor)
 
+saveRDS(site_data, "./data/site_detail.rds")
+
+
 brazil_sites <- site_data %>% 
   filter(country=="Brazil")
+
 
 library(yaml)
 library(ggmap)
@@ -51,8 +57,7 @@ br_temp <- brazil_sites %>%
          elevation, country, year, temperature)
 
 br_temp %>% 
-  filter(station_name=="GOIANIA") %>% 
-  group_by(country, year) %>% 
+  group_by(year) %>% 
   summarise( temp_avg = mean(temperature, na.rm = T)) %>% 
   ungroup() %>% 
   filter(year>=max(year)-100) %>% 
@@ -99,7 +104,7 @@ br_temp %>%
 
 
 br_temp %>% 
-  filter(station_name %in% c("RIO DE JANEIR", "SAO PAULO", "BRASILEIRA (AER", 
+  filter(station_name %in% c("RIO DE JANEIR", "SAO PAULO", "BRASILIA (AER", 
                              "SALVADOR","MANAUS")) %>% 
   group_by(country, station_name, year) %>% 
   summarise( temp_avg = mean(temperature, na.rm = T)) %>% 
